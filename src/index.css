@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  
+  .font-mono, .tabular-nums {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Custom sports styling utilities */
+.sports-pitch-pattern {
+  background-color: #0f381e;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.05) 40px,
+    transparent 40px,
+    transparent 80px
+  );
+}
+
+/* Subtle glow effects */
+.glow-gold {
+  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3);
+}
+
+.glow-live {
+  box-shadow: 0 0 20px -3px rgba(239, 68, 68, 0.4);
+}

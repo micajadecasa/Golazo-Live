@@ -1,0 +1,6 @@
+{
+  "name": "GolazoLive - La Liga & Champions League",
+  "description": "Marcadores en vivo de La Liga y Champions League con notificaciones instantáneas de cada gol, actualización automática de resultados finales y tabla de posiciones en tiempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -402,6 +402,12 @@ export default function App() {
         setBrowserNotificationsEnabled={setBrowserNotificationsEnabled}
       />
 
+      {/* Android PWA Install Prompt & Modal */}
+      <AndroidInstallModal
+        forceOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+      />
+
       {/* Clean Footer */}
       <footer className="border-t border-slate-800 bg-slate-950 py-6 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -430,6 +436,12 @@ export default function App() {
               className="hover:text-amber-400 transition-colors cursor-pointer"
             >
               Goleadores
+            </button>
+            <button
+              onClick={() => setIsInstallModalOpen(true)}
+              className="text-amber-400 hover:text-amber-300 font-semibold transition-colors cursor-pointer flex items-center gap-1"
+            >
+              <span>📱 Instalar en Android</span>
             </button>
           </div>
         </div>

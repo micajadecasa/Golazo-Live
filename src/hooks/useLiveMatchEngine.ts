@@ -14,6 +14,10 @@ import {
   soundService, 
   sendBrowserNotification 
 } from '../services/soundEffects';
+import { 
+  getLiveFootballMatches, 
+  getLiveFootballStandings 
+} from '../services/onlineFootballService';
 
 export function useLiveMatchEngine() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -172,60 +176,52 @@ export function useLiveMatchEngine() {
     sendBrowserNotification(title, body, `final-${match.id}`);
   }, [favoriteTeams, onlyFavoritesAlerts, soundEnabled]);
 
-  // Fetch online data from backend API proxy
+  // Fetch online data (works on GitHub Pages and local dev without 404s)
   const fetchOnlineData = useCallback(async (isManual: boolean = false) => {
     if (isManual) setIsRefreshing(true);
 
     try {
-      // 1. Fetch matches from online backend proxy
-      const matchesRes = await fetch('/api/football/matches');
-      if (matchesRes.ok) {
-        const matchesData = await matchesRes.json();
-        if (matchesData.matches && Array.isArray(matchesData.matches) && matchesData.matches.length > 0) {
-          const incomingMatches: Match[] = matchesData.matches;
-
-          // Check for live goal transitions and finished matches
-          incomingMatches.forEach((newM) => {
-            const prev = previousScoresRef.current.get(newM.id);
-            if (prev) {
-              if (newM.homeScore > prev.home) {
-                dispatchGoalAlert(newM, newM.homeTeam.id, `${newM.homeTeam.shortName} Gol`, undefined, {
-                  home: newM.homeScore,
-                  away: newM.awayScore,
-                });
-              }
-              if (newM.awayScore > prev.away) {
-                dispatchGoalAlert(newM, newM.awayTeam.id, `${newM.awayTeam.shortName} Gol`, undefined, {
-                  home: newM.homeScore,
-                  away: newM.awayScore,
-                });
-              }
-              if (prev.status === 'LIVE' && newM.status === 'FINISHED') {
-                dispatchFinalResultAlert(newM);
-              }
+      // 1. Fetch live matches (client-side ESPN CORS / proxy)
+      const incomingMatches = await getLiveFootballMatches();
+      if (incomingMatches && Array.isArray(incomingMatches) && incomingMatches.length > 0) {
+        // Check for live goal transitions and finished matches
+        incomingMatches.forEach((newM) => {
+          const prev = previousScoresRef.current.get(newM.id);
+          if (prev) {
+            if (newM.homeScore > prev.home) {
+              dispatchGoalAlert(newM, newM.homeTeam.id, `${newM.homeTeam.shortName} Gol`, undefined, {
+                home: newM.homeScore,
+                away: newM.awayScore,
+              });
             }
-            previousScoresRef.current.set(newM.id, {
-              home: newM.homeScore,
-              away: newM.awayScore,
-              status: newM.status,
-            });
+            if (newM.awayScore > prev.away) {
+              dispatchGoalAlert(newM, newM.awayTeam.id, `${newM.awayTeam.shortName} Gol`, undefined, {
+                home: newM.homeScore,
+                away: newM.awayScore,
+              });
+            }
+            if (prev.status === 'LIVE' && newM.status === 'FINISHED') {
+              dispatchFinalResultAlert(newM);
+            }
+          }
+          previousScoresRef.current.set(newM.id, {
+            home: newM.homeScore,
+            away: newM.awayScore,
+            status: newM.status,
           });
+        });
 
-          setMatches(incomingMatches);
-          setIsOnlineConnected(true);
-        }
+        setMatches(incomingMatches);
+        setIsOnlineConnected(true);
       }
 
       // 2. Fetch live standings
-      const standingsRes = await fetch('/api/football/standings');
-      if (standingsRes.ok) {
-        const standingsData = await standingsRes.json();
-        if (standingsData.laliga && standingsData.laliga.length > 0) {
-          setLaligaStandings(standingsData.laliga);
-        }
-        if (standingsData.champions && standingsData.champions.length > 0) {
-          setChampionsStandings(standingsData.champions);
-        }
+      const standingsData = await getLiveFootballStandings();
+      if (standingsData.laliga && standingsData.laliga.length > 0) {
+        setLaligaStandings(standingsData.laliga);
+      }
+      if (standingsData.champions && standingsData.champions.length > 0) {
+        setChampionsStandings(standingsData.champions);
       }
 
       setLastUpdated(new Date());

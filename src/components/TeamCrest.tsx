@@ -5,6 +5,7 @@ interface TeamCrestProps {
   team: Team;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
+  onClick?: (e: React.MouseEvent) => void;
 }
 
 const SIZE_MAP = {
@@ -19,6 +20,7 @@ export const TeamCrest: React.FC<TeamCrestProps> = ({
   team,
   size = 'md',
   className = '',
+  onClick,
 }) => {
   const [hasError, setHasError] = useState(false);
   const sizeConfig = SIZE_MAP[size] || SIZE_MAP.md;
@@ -27,8 +29,11 @@ export const TeamCrest: React.FC<TeamCrestProps> = ({
   if (team.logo && !hasError) {
     return (
       <div 
-        className={`${sizeConfig.box} rounded-xl bg-slate-900/60 p-1 flex items-center justify-center shrink-0 border border-slate-800 shadow-sm ${className}`}
-        title={team.name}
+        onClick={onClick ? (e) => { e.stopPropagation(); onClick(e); } : undefined}
+        className={`${sizeConfig.box} rounded-xl bg-slate-900/60 p-1 flex items-center justify-center shrink-0 border border-slate-800 shadow-sm ${
+          onClick ? 'cursor-pointer hover:scale-110 active:scale-95 hover:border-amber-400/60 transition-transform' : ''
+        } ${className}`}
+        title={`Ver próximos partidos de ${team.name}`}
       >
         <img
           src={team.logo}
@@ -36,7 +41,7 @@ export const TeamCrest: React.FC<TeamCrestProps> = ({
           referrerPolicy="no-referrer"
           loading="lazy"
           onError={() => setHasError(true)}
-          className={`${sizeConfig.img} object-contain transition-transform hover:scale-105`}
+          className={`${sizeConfig.img} object-contain transition-transform`}
         />
       </div>
     );
@@ -45,8 +50,11 @@ export const TeamCrest: React.FC<TeamCrestProps> = ({
   // Graceful stylized fallback container with team badge colors
   return (
     <div
-      className={`${sizeConfig.box} rounded-xl flex items-center justify-center font-black ${sizeConfig.text} shrink-0 border shadow-sm ${team.badgeBg} ${className}`}
-      title={team.name}
+      onClick={onClick ? (e) => { e.stopPropagation(); onClick(e); } : undefined}
+      className={`${sizeConfig.box} rounded-xl flex items-center justify-center font-black ${sizeConfig.text} shrink-0 border shadow-sm ${team.badgeBg} ${
+        onClick ? 'cursor-pointer hover:scale-110 active:scale-95 hover:border-amber-400/60 transition-transform' : ''
+      } ${className}`}
+      title={`Ver próximos partidos de ${team.name}`}
     >
       {team.logoInitials}
     </div>

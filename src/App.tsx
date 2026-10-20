@@ -1,21 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { 
-  Trophy, 
-  Search, 
   Filter, 
   Star, 
   Calendar, 
   Clock, 
   CheckCircle2, 
   ChevronRight,
-  Radio,
-  CalendarDays
+  Flame,
+  Search,
+  Zap
 } from 'lucide-react';
 import { useLiveMatchEngine } from './hooks/useLiveMatchEngine';
 import { Header } from './components/Header';
 import { MatchCard } from './components/MatchCard';
 import { StandingsTable } from './components/StandingsTable';
-import { TopScorersView } from './components/TopScorersView';
 import { LiveGoalToast } from './components/LiveGoalToast';
 import { MatchDetailsModal } from './components/MatchDetailsModal';
 import { NotificationCenterModal } from './components/NotificationCenterModal';
@@ -23,7 +21,8 @@ import { LiveOnlineStatusBar } from './components/LiveOnlineStatusBar';
 import { MatchCalendar } from './components/MatchCalendar';
 import { TeamCrest } from './components/TeamCrest';
 import { AndroidInstallModal } from './components/AndroidInstallModal';
-import { Competition, MatchStatus } from './types/football';
+import { TeamUpcomingMatchesModal } from './components/TeamUpcomingMatchesModal';
+import { Competition, MatchStatus, Team } from './types/football';
 
 export default function App() {
   const {
@@ -48,8 +47,8 @@ export default function App() {
     dismissGoalToast,
   } = useLiveMatchEngine();
 
-  // Navigation & Filter states
-  const [activeTab, setActiveTab] = useState<'matches' | 'standings' | 'scorers'>('matches');
+  // Navigation states: Only 'matches' and 'standings' (goleadores removed)
+  const [activeTab, setActiveTab] = useState<'matches' | 'standings'>('matches');
   const [competitionFilter, setCompetitionFilter] = useState<'all' | Competition>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | MatchStatus>('all');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -59,6 +58,20 @@ export default function App() {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [selectedTeamForUpcoming, setSelectedTeamForUpcoming] = useState<Team | null>(null);
+
+  // Dynamic todayIso based on current local date
+  const todayIso = useMemo(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
+
+  const todayFormatted = useMemo(() => {
+    return new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }, []);
 
   // Unread count
   const unreadCount = useMemo(() => {
@@ -106,8 +119,51 @@ export default function App() {
     });
   }, [matches, competitionFilter, statusFilter, selectedDate, onlyFavoritesAlerts, favoriteTeams, searchQuery]);
 
-  // Featured Spotlight match: prioritize LIVE match, then next upcoming match
-  const featuredMatch = liveMatches[0] || upcomingMatches[0] || matches[0];
+  // Priority sorting:
+  // 1. Matches involving FAVORITE TEAMS at the very beginning!
+  // 2. Matches of TODAY in the forefront!
+  // 3. Matches LIVE
+  // 4. Matches UPCOMING
+  // 5. Matches FINISHED
+  const sortedFilteredMatches = useMemo(() => {
+    return [...filteredMatches].sort((a, b) => {
+      const aFav = favoriteTeams.includes(a.homeTeam.id) || favoriteTeams.includes(a.awayTeam.id);
+      const bFav = favoriteTeams.includes(b.homeTeam.id) || favoriteTeams.includes(b.awayTeam.id);
+      if (aFav && !bFav) return -1;
+      if (!aFav && bFav) return 1;
+
+      const aIsToday = a.isoDate === todayIso || (a.timestamp ? new Date(a.timestamp).toDateString() === new Date().toDateString() : false);
+      const bIsToday = b.isoDate === todayIso || (b.timestamp ? new Date(b.timestamp).toDateString() === new Date().toDateString() : false);
+      if (aIsToday && !bIsToday) return -1;
+      if (!aIsToday && bIsToday) return 1;
+
+      if (a.status === 'LIVE' && b.status !== 'LIVE') return -1;
+      if (a.status !== 'LIVE' && b.status === 'LIVE') return 1;
+
+      if (a.status === 'UPCOMING' && b.status === 'FINISHED') return -1;
+      if (a.status === 'FINISHED' && b.status === 'UPCOMING') return 1;
+
+      return (a.timestamp || 0) - (b.timestamp || 0);
+    });
+  }, [filteredMatches, favoriteTeams, todayIso]);
+
+  // Featured Spotlight match: prioritize Favorite Team playing today or LIVE, then marquee match of today
+  const featuredMatch = useMemo(() => {
+    const favLive = liveMatches.find((m) => favoriteTeams.includes(m.homeTeam.id) || favoriteTeams.includes(m.awayTeam.id));
+    if (favLive) return favLive;
+    if (liveMatches[0]) return liveMatches[0];
+
+    const favToday = matches.find((m) => 
+      (m.isoDate === todayIso || (m.timestamp && new Date(m.timestamp).toDateString() === new Date().toDateString())) && 
+      (favoriteTeams.includes(m.homeTeam.id) || favoriteTeams.includes(m.awayTeam.id))
+    );
+    if (favToday) return favToday;
+
+    const anyToday = matches.find((m) => m.isoDate === todayIso || (m.timestamp && new Date(m.timestamp).toDateString() === new Date().toDateString()));
+    if (anyToday) return anyToday;
+
+    return upcomingMatches[0] || matches[0];
+  }, [liveMatches, favoriteTeams, matches, todayIso, upcomingMatches]);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-amber-500 selection:text-slate-950">
@@ -133,20 +189,40 @@ export default function App() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Real-time online feed status bar */}
-        <LiveOnlineStatusBar
-          isRefreshing={isRefreshing}
-          isOnlineConnected={isOnlineConnected}
-          lastUpdated={lastUpdated}
-          onRefreshOnline={refreshOnlineData}
-          matchesCount={matches.length}
-          liveCount={liveMatches.length}
-          onlyFavoritesAlerts={onlyFavoritesAlerts}
-          setOnlyFavoritesAlerts={setOnlyFavoritesAlerts}
-          favoriteTeamsCount={favoriteTeams.length}
-        />
+        {/* Real-time online feed status bar with Date badge */}
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span className="text-slate-400">Fecha actual:</span>
+              <strong className="text-white capitalize font-medium">{todayFormatted}</strong>
+            </div>
 
-        {/* VIEW 1: MATCHES (Partidos anteriores, en vivo y futuros) */}
+            <div className="flex items-center gap-2 text-slate-400">
+              <span className="px-2 py-0.5 rounded bg-amber-400/10 text-amber-300 font-semibold border border-amber-400/20 text-[11px]">
+                ⭐ Favoritos y partidos de hoy al principio
+              </span>
+              <span className="hidden sm:inline text-slate-500">·</span>
+              <span className="hidden sm:inline text-[11px] text-slate-400">
+                Pulsa en cualquier escudo para ver sus próximos partidos
+              </span>
+            </div>
+          </div>
+
+          <LiveOnlineStatusBar
+            isRefreshing={isRefreshing}
+            isOnlineConnected={isOnlineConnected}
+            lastUpdated={lastUpdated}
+            onRefreshOnline={refreshOnlineData}
+            matchesCount={matches.length}
+            liveCount={liveMatches.length}
+            onlyFavoritesAlerts={onlyFavoritesAlerts}
+            setOnlyFavoritesAlerts={setOnlyFavoritesAlerts}
+            favoriteTeamsCount={favoriteTeams.length}
+          />
+        </div>
+
+        {/* VIEW 1: MATCHES (Partidos de hoy en primer plano, favoritos al principio) */}
         {activeTab === 'matches' && (
           <div className="space-y-6">
             {/* Featured Match Hero Spotlight */}
@@ -156,23 +232,48 @@ export default function App() {
                   {/* Left: Competition & status with official crests */}
                   <div className="space-y-3 text-center md:text-left">
                     <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-semibold text-slate-400">
-                      <span className="text-amber-400 font-bold uppercase tracking-wider">
-                        {featuredMatch.competition === 'laliga' ? 'LaLiga EA Sports' : 'UEFA Champions League'}
+                      <span className="text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <Flame className="w-3.5 h-3.5" />
+                        <span>{featuredMatch.competition === 'laliga' ? 'LaLiga EA Sports' : 'UEFA Champions League'}</span>
                       </span>
                       <span aria-hidden="true" className="text-slate-600">·</span>
-                      <span className="capitalize">{featuredMatch.date}</span>
+                      <span className="capitalize font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">
+                        {featuredMatch.date}
+                      </span>
                     </div>
 
-                    <div className="flex items-center justify-center md:justify-start gap-3">
-                      <TeamCrest team={featuredMatch.homeTeam} size="lg" />
-                      <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                        {featuredMatch.homeTeam.shortName} <span className="text-amber-400">vs</span> {featuredMatch.awayTeam.shortName}
-                      </h2>
-                      <TeamCrest team={featuredMatch.awayTeam} size="lg" />
+                    <div className="flex items-center justify-center md:justify-start gap-4">
+                      {/* Home team crest & name */}
+                      <div 
+                        onClick={() => setSelectedTeamForUpcoming(featuredMatch.homeTeam)}
+                        className="flex items-center gap-2 cursor-pointer group"
+                        title={`Ver próximos partidos de ${featuredMatch.homeTeam.name}`}
+                      >
+                        <TeamCrest team={featuredMatch.homeTeam} size="lg" onClick={() => setSelectedTeamForUpcoming(featuredMatch.homeTeam)} />
+                        <h2 className="text-xl sm:text-2xl font-black text-white group-hover:text-amber-400 transition-colors">
+                          {featuredMatch.homeTeam.shortName}
+                        </h2>
+                      </div>
+
+                      <span className="text-amber-400 font-bold text-lg">vs</span>
+
+                      {/* Away team name & crest */}
+                      <div 
+                        onClick={() => setSelectedTeamForUpcoming(featuredMatch.awayTeam)}
+                        className="flex items-center gap-2 cursor-pointer group"
+                        title={`Ver próximos partidos de ${featuredMatch.awayTeam.name}`}
+                      >
+                        <h2 className="text-xl sm:text-2xl font-black text-white group-hover:text-amber-400 transition-colors">
+                          {featuredMatch.awayTeam.shortName}
+                        </h2>
+                        <TeamCrest team={featuredMatch.awayTeam} size="lg" onClick={() => setSelectedTeamForUpcoming(featuredMatch.awayTeam)} />
+                      </div>
                     </div>
 
-                    <p className="text-xs text-slate-400">
-                      📍 {featuredMatch.venue || 'Estadio oficial'}
+                    <p className="text-xs text-slate-400 flex items-center justify-center md:justify-start gap-1">
+                      <span>📍 {featuredMatch.venue || 'Estadio oficial'}</span>
+                      <span className="text-slate-500">·</span>
+                      <span className="text-amber-400/90 text-[11px] font-medium">Toca el escudo o nombre para ver calendario del club</span>
                     </p>
                   </div>
 
@@ -331,8 +432,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* Matches Grid */}
-            {filteredMatches.length === 0 ? (
+            {/* Matches List Ordered (Favorites & Today first) */}
+            {sortedFilteredMatches.length === 0 ? (
               <div className="text-center py-16 bg-slate-900/30 rounded-2xl border border-slate-800 p-8 space-y-3">
                 <Filter className="w-8 h-8 text-slate-600 mx-auto" />
                 <h3 className="text-sm font-bold text-white">No hay partidos con estos filtros</h3>
@@ -352,19 +453,31 @@ export default function App() {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredMatches.map((m) => {
-                  const isFav = favoriteTeams.includes(m.homeTeam.id) || favoriteTeams.includes(m.awayTeam.id);
-                  return (
-                    <MatchCard
-                      key={m.id}
-                      match={m}
-                      isFavorite={isFav}
-                      onToggleFavorite={toggleFavoriteTeam}
-                      onSelectMatch={(id) => setSelectedMatchId(id)}
-                    />
-                  );
-                })}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-white">Listado de Partidos</span>
+                    <span>·</span>
+                    <span className="text-amber-400">Ordenados con favoritos y hoy al frente</span>
+                  </div>
+                  <span className="font-mono text-slate-500">{sortedFilteredMatches.length} partidos</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {sortedFilteredMatches.map((m) => {
+                    const isFav = favoriteTeams.includes(m.homeTeam.id) || favoriteTeams.includes(m.awayTeam.id);
+                    return (
+                      <MatchCard
+                        key={m.id}
+                        match={m}
+                        isFavorite={isFav}
+                        onToggleFavorite={toggleFavoriteTeam}
+                        onSelectMatch={(id) => setSelectedMatchId(id)}
+                        onSelectTeam={(team) => setSelectedTeamForUpcoming(team)}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -377,11 +490,9 @@ export default function App() {
             championsStandings={championsStandings}
             favoriteTeams={favoriteTeams}
             onToggleFavorite={toggleFavoriteTeam}
+            onSelectTeam={(team) => setSelectedTeamForUpcoming(team)}
           />
         )}
-
-        {/* VIEW 3: TOP SCORERS (Pichichi & Champions) */}
-        {activeTab === 'scorers' && <TopScorersView />}
       </main>
 
       {/* Match Details Modal */}
@@ -389,6 +500,17 @@ export default function App() {
         match={selectedMatch}
         isOpen={!!selectedMatch}
         onClose={() => setSelectedMatchId(null)}
+      />
+
+      {/* Team Upcoming Matches Modal (Opens when clicking any crest or team name) */}
+      <TeamUpcomingMatchesModal
+        team={selectedTeamForUpcoming}
+        isOpen={!!selectedTeamForUpcoming}
+        onClose={() => setSelectedTeamForUpcoming(null)}
+        matches={matches}
+        isFavorite={selectedTeamForUpcoming ? favoriteTeams.includes(selectedTeamForUpcoming.id) : false}
+        onToggleFavorite={toggleFavoriteTeam}
+        onSelectMatch={(id) => setSelectedMatchId(id)}
       />
 
       {/* Notification Center Modal */}
@@ -408,7 +530,7 @@ export default function App() {
         onClose={() => setIsInstallModalOpen(false)}
       />
 
-      {/* Clean Footer */}
+      {/* Clean Footer (Goleadores removed) */}
       <footer className="border-t border-slate-800 bg-slate-950 py-6 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -430,12 +552,6 @@ export default function App() {
               className="hover:text-amber-400 transition-colors cursor-pointer"
             >
               Clasificación
-            </button>
-            <button
-              onClick={() => setActiveTab('scorers')}
-              className="hover:text-amber-400 transition-colors cursor-pointer"
-            >
-              Goleadores
             </button>
             <button
               onClick={() => setIsInstallModalOpen(true)}

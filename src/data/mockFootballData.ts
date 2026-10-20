@@ -319,6 +319,29 @@ export const TEAMS: Record<string, Team> = {
   },
 };
 
+// Dynamic date calculation relative to actual current date (20 Oct 2026 / current day)
+const getRelativeMatchDate = (offsetDays: number = 0, hour: number = 21, minute: number = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  d.setHours(hour, minute, 0, 0);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const isoDate = `${yyyy}-${mm}-${dd}`;
+  const dayName = d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+  const dateStr = offsetDays === 0 ? `Hoy (${dayName})` : offsetDays === -1 ? `Ayer (${dayName})` : offsetDays === 1 ? `Mañana (${dayName})` : dayName;
+  return { isoDate, timestamp: d.getTime(), dateStr };
+};
+
+const dToday1 = getRelativeMatchDate(0, 21, 0);
+const dToday2 = getRelativeMatchDate(0, 21, 0);
+const dToday3 = getRelativeMatchDate(0, 18, 30);
+const dToday4 = getRelativeMatchDate(0, 21, 0);
+const dYesterday = getRelativeMatchDate(-1, 21, 0);
+const dTomorrow = getRelativeMatchDate(1, 21, 0);
+const dInTwoDays = getRelativeMatchDate(2, 21, 0);
+const dInThreeDays = getRelativeMatchDate(3, 16, 15);
+
 // Initial Matches dataset (Live, Finished, Upcoming)
 export const INITIAL_MATCHES: Match[] = [
   // 1. EL CLÁSICO - LIVE MATCH
@@ -326,7 +349,9 @@ export const INITIAL_MATCHES: Match[] = [
     id: 'match-laliga-clasico',
     competition: 'laliga',
     matchday: 'Jornada 28',
-    date: 'Hoy',
+    date: dToday1.dateStr,
+    isoDate: dToday1.isoDate,
+    timestamp: dToday1.timestamp,
     time: '21:00',
     venue: 'Estadio Santiago Bernabéu, Madrid',
     referee: 'José María Sánchez Martínez',
@@ -446,7 +471,9 @@ export const INITIAL_MATCHES: Match[] = [
     id: 'match-ucl-bayern-arsenal',
     competition: 'champions',
     matchday: 'Fase de Liga - Jornada 6',
-    date: 'Hoy',
+    date: dToday2.dateStr,
+    isoDate: dToday2.isoDate,
+    timestamp: dToday2.timestamp,
     time: '21:00',
     venue: 'Allianz Arena, Múnich',
     referee: 'Clément Turpin',
@@ -566,7 +593,9 @@ export const INITIAL_MATCHES: Match[] = [
     id: 'match-laliga-atletico-athletic',
     competition: 'laliga',
     matchday: 'Jornada 28',
-    date: 'Hoy',
+    date: dToday3.dateStr,
+    isoDate: dToday3.isoDate,
+    timestamp: dToday3.timestamp,
     time: '18:30',
     venue: 'Cívitas Metropolitano, Madrid',
     referee: 'Alejandro Hernández Hernández',
@@ -663,7 +692,9 @@ export const INITIAL_MATCHES: Match[] = [
     id: 'match-ucl-mancity-inter',
     competition: 'champions',
     matchday: 'Fase de Liga - Jornada 6',
-    date: 'Hoy',
+    date: dToday4.dateStr,
+    isoDate: dToday4.isoDate,
+    timestamp: dToday4.timestamp,
     time: '21:00',
     venue: 'Etihad Stadium, Manchester',
     referee: 'Glenn Nyberg',
@@ -752,7 +783,9 @@ export const INITIAL_MATCHES: Match[] = [
     id: 'match-laliga-villarreal-betis',
     competition: 'laliga',
     matchday: 'Jornada 27',
-    date: 'Ayer',
+    date: dYesterday.dateStr,
+    isoDate: dYesterday.isoDate,
+    timestamp: dYesterday.timestamp,
     time: '21:00',
     venue: 'Estadio de la Cerámica, Villarreal',
     referee: 'Juan Martínez Munuera',
@@ -875,7 +908,9 @@ export const INITIAL_MATCHES: Match[] = [
     id: 'match-ucl-liverpool-leverkusen',
     competition: 'champions',
     matchday: 'Fase de Liga - Jornada 5',
-    date: 'Ayer',
+    date: dTomorrow.dateStr,
+    isoDate: dTomorrow.isoDate,
+    timestamp: dTomorrow.timestamp,
     time: '21:00',
     venue: 'Anfield, Liverpool',
     referee: 'Danny Makkelie',
@@ -993,7 +1028,9 @@ export const INITIAL_MATCHES: Match[] = [
     id: 'match-ucl-barca-bayern',
     competition: 'champions',
     matchday: 'Fase de Liga - Jornada 7',
-    date: 'Miércoles, 21:00',
+    date: dInTwoDays.dateStr,
+    isoDate: dInTwoDays.isoDate,
+    timestamp: dInTwoDays.timestamp,
     time: '21:00',
     venue: 'Estadio Olímpico Lluís Companys, Barcelona',
     referee: 'Slavko Vinčić',
@@ -1069,7 +1106,9 @@ export const INITIAL_MATCHES: Match[] = [
     id: 'match-laliga-real-sociedad-sevilla',
     competition: 'laliga',
     matchday: 'Jornada 28',
-    date: 'Mañana, 16:15',
+    date: dInThreeDays.dateStr,
+    isoDate: dInThreeDays.isoDate,
+    timestamp: dInThreeDays.timestamp,
     time: '16:15',
     venue: 'Reale Arena, San Sebastián',
     referee: 'Guillermo Cuadra Fernández',

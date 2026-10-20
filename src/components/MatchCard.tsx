@@ -1,5 +1,5 @@
-import { Star, ChevronRight, CheckCircle2, Clock, Calendar, MapPin } from 'lucide-react';
-import { Match } from '../types/football';
+import { Star, ChevronRight, CheckCircle2, Clock, MapPin } from 'lucide-react';
+import { Match, Team } from '../types/football';
 import { TeamCrest } from './TeamCrest';
 
 interface MatchCardProps {
@@ -7,6 +7,7 @@ interface MatchCardProps {
   isFavorite: boolean;
   onToggleFavorite: (teamId: string) => void;
   onSelectMatch: (matchId: string) => void;
+  onSelectTeam?: (team: Team) => void;
 }
 
 export const MatchCard: React.FC<MatchCardProps> = ({
@@ -14,6 +15,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   isFavorite,
   onToggleFavorite,
   onSelectMatch,
+  onSelectTeam,
 }) => {
   const isLive = match.status === 'LIVE';
   const isFinished = match.status === 'FINISHED';
@@ -21,6 +23,13 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
   const homeGoals = match.incidents.filter((inc) => inc.type === 'GOAL' && inc.teamId === match.homeTeam.id);
   const awayGoals = match.incidents.filter((inc) => inc.type === 'GOAL' && inc.teamId === match.awayTeam.id);
+
+  const handleTeamClick = (e: React.MouseEvent, team: Team) => {
+    e.stopPropagation();
+    if (onSelectTeam) {
+      onSelectTeam(team);
+    }
+  };
 
   return (
     <div 
@@ -79,11 +88,15 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       {/* Main Scoreboard area */}
       <div className="p-4 hover:bg-slate-800/20 transition-colors">
         <div className="grid grid-cols-12 items-center gap-2">
-          {/* Home Team */}
-          <div className="col-span-5 flex items-center gap-3">
-            <TeamCrest team={match.homeTeam} size="md" />
+          {/* Home Team (Clickable crest or name to see upcoming matches) */}
+          <div 
+            onClick={(e) => handleTeamClick(e, match.homeTeam)}
+            className="col-span-5 flex items-center gap-3 cursor-pointer group hover:opacity-90"
+            title={`Ver próximos partidos de ${match.homeTeam.name}`}
+          >
+            <TeamCrest team={match.homeTeam} size="md" onClick={(e) => handleTeamClick(e, match.homeTeam)} />
             <div className="truncate">
-              <h4 className="text-sm font-bold text-white truncate">
+              <h4 className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors truncate">
                 {match.homeTeam.shortName}
               </h4>
               <p className="text-[11px] text-slate-400 truncate">
@@ -121,17 +134,21 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             )}
           </div>
 
-          {/* Away Team */}
-          <div className="col-span-5 flex items-center justify-end gap-3 text-right">
+          {/* Away Team (Clickable crest or name to see upcoming matches) */}
+          <div 
+            onClick={(e) => handleTeamClick(e, match.awayTeam)}
+            className="col-span-5 flex items-center justify-end gap-3 text-right cursor-pointer group hover:opacity-90"
+            title={`Ver próximos partidos de ${match.awayTeam.name}`}
+          >
             <div className="truncate">
-              <h4 className="text-sm font-bold text-white truncate">
+              <h4 className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors truncate">
                 {match.awayTeam.shortName}
               </h4>
               <p className="text-[11px] text-slate-400 truncate">
                 {match.awayTeam.city}
               </p>
             </div>
-            <TeamCrest team={match.awayTeam} size="md" />
+            <TeamCrest team={match.awayTeam} size="md" onClick={(e) => handleTeamClick(e, match.awayTeam)} />
           </div>
         </div>
 
@@ -156,7 +173,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         )}
       </div>
 
-      {/* Bottom Footer: Venue & Date */}
+      {/* Bottom Footer: Venue & Action */}
       <div className="px-4 py-2 bg-slate-950/70 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs">
         <span className="text-slate-500 truncate text-[11px] flex items-center gap-1">
           <MapPin className="w-3 h-3 text-slate-600 shrink-0" />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Search, Star, Trophy, Info } from 'lucide-react';
-import { StandingRow, Competition } from '../types/football';
+import { StandingRow, Competition, Team } from '../types/football';
 import { TeamCrest } from './TeamCrest';
 
 interface StandingsTableProps {
@@ -8,7 +8,7 @@ interface StandingsTableProps {
   championsStandings: StandingRow[];
   favoriteTeams: string[];
   onToggleFavorite: (teamId: string) => void;
-  onSelectTeamMatch?: (teamId: string) => void;
+  onSelectTeam?: (team: Team) => void;
 }
 
 export const StandingsTable: React.FC<StandingsTableProps> = ({
@@ -16,6 +16,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
   championsStandings,
   favoriteTeams,
   onToggleFavorite,
+  onSelectTeam,
 }) => {
   const [selectedComp, setSelectedComp] = useState<Competition>('laliga');
   const [searchQuery, setSearchQuery] = useState('');
@@ -170,9 +171,13 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                         >
                           <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-amber-400 text-amber-400' : ''}`} />
                         </button>
-                        <TeamCrest team={row.team} size="sm" />
-                        <div className="truncate">
-                          <span className="font-semibold text-white hover:text-amber-400 transition-colors">
+                        <TeamCrest team={row.team} size="sm" onClick={() => onSelectTeam?.(row.team)} />
+                        <div 
+                          className="truncate cursor-pointer group"
+                          onClick={() => onSelectTeam?.(row.team)}
+                          title={`Ver próximos partidos de ${row.team.name}`}
+                        >
+                          <span className="font-semibold text-white group-hover:text-amber-400 transition-colors">
                             {row.team.name}
                           </span>
                           <span className="text-[11px] text-slate-500 block">

@@ -26,11 +26,18 @@ export const MatchCalendar: React.FC<MatchCalendarProps> = ({
   onSelectDate,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewMonth, setViewMonth] = useState<number>(9); // 0-indexed: 9 = October
-  const [viewYear, setViewYear] = useState<number>(2026);
+  const now = new Date();
+  const [viewMonth, setViewMonth] = useState<number>(now.getMonth());
+  const [viewYear, setViewYear] = useState<number>(now.getFullYear());
 
-  // Today in 2026
-  const todayIso = '2026-10-18';
+  // Dynamic todayIso based on actual current date
+  const todayIso = useMemo(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }, []);
 
   // Aggregate distinct dates from matches
   const availableDates: DateOption[] = useMemo(() => {
@@ -315,40 +322,25 @@ export const MatchCalendar: React.FC<MatchCalendarProps> = ({
               <div className="flex flex-wrap items-center gap-1.5 text-xs">
                 <button
                   onClick={() => {
-                    onSelectDate('2026-10-18');
+                    onSelectDate(todayIso);
                     setIsModalOpen(false);
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-amber-400/20 text-amber-300 border border-amber-400/40 hover:bg-amber-400/30 transition-colors cursor-pointer font-bold"
                 >
-                  Hoy (18 Oct)
+                  Hoy
                 </button>
-                <button
-                  onClick={() => {
-                    onSelectDate('2026-10-20');
-                    setIsModalOpen(false);
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
-                >
-                  Champions (20 Oct)
-                </button>
-                <button
-                  onClick={() => {
-                    onSelectDate('2026-10-21');
-                    setIsModalOpen(false);
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
-                >
-                  Champions (21 Oct)
-                </button>
-                <button
-                  onClick={() => {
-                    onSelectDate('2026-10-24');
-                    setIsModalOpen(false);
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
-                >
-                  LaLiga (24 Oct)
-                </button>
+                {availableDates.slice(0, 4).map((d) => (
+                  <button
+                    key={d.isoDate}
+                    onClick={() => {
+                      onSelectDate(d.isoDate);
+                      setIsModalOpen(false);
+                    }}
+                    className="px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 transition-colors cursor-pointer"
+                  >
+                    {d.displayDay} ({d.displayDate})
+                  </button>
+                ))}
                 <button
                   onClick={() => {
                     onSelectDate(null);
@@ -356,7 +348,7 @@ export const MatchCalendar: React.FC<MatchCalendarProps> = ({
                   }}
                   className="px-2.5 py-1 rounded-lg bg-amber-400 text-slate-950 font-bold transition-colors cursor-pointer ml-auto"
                 >
-                  Todos los Días
+                  Ver Todos
                 </button>
               </div>
             </div>

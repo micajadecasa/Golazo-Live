@@ -3,8 +3,8 @@ import { Bell, Volume2, VolumeX, ShieldAlert, Sparkles, Smartphone } from 'lucid
 import { requestBrowserNotificationPermission } from '../services/soundEffects';
 
 interface HeaderProps {
-  activeTab: 'matches' | 'standings' | 'scorers';
-  setActiveTab: (tab: 'matches' | 'standings' | 'scorers') => void;
+  activeTab: 'matches' | 'standings';
+  setActiveTab: (tab: 'matches' | 'standings') => void;
   openNotificationCenter: () => void;
   unreadCount: number;
   soundEnabled: boolean;
@@ -70,14 +70,6 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               Tabla de Posiciones
-            </button>
-            <button
-              onClick={() => setActiveTab('scorers')}
-              className={`hover:text-white transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                activeTab === 'scorers' ? 'text-amber-400 font-semibold border-b-2 border-amber-400 pb-0.5' : ''
-              }`}
-            >
-              Goleadores
             </button>
           </nav>
 
@@ -153,14 +145,6 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             Clasificación
-          </button>
-          <button
-            onClick={() => setActiveTab('scorers')}
-            className={`px-3 py-1.5 rounded-md cursor-pointer ${
-              activeTab === 'scorers' ? 'bg-amber-400/10 text-amber-400 font-semibold' : 'text-slate-400'
-            }`}
-          >
-            Goleadores
           </button>
           {onOpenInstallModal && (
             <button
